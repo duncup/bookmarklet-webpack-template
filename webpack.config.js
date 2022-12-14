@@ -1,5 +1,6 @@
 const path = require('path');
 const webpack = require('webpack');
+var UglifyJS = require("uglify-js");
 
 // Modified for webpack v5: See https://stackoverflow.com/a/46920791/839595
 class AssetToBookmarkletPlugin {
@@ -11,10 +12,19 @@ class AssetToBookmarkletPlugin {
         name: this.pluginName,
         stage: webpack.Compilation.PROCESS_ASSETS_STAGE_ADDITIONAL
       }, (assets) => {
+        var options = {
+          mangle: {
+            toplevel: true,
+          },
+          nameCache: {}
+        };
         // Emit a new .bookmarklet
         for (const assetName in assets) {
           const asset = assets[assetName];
-          const content = 'javascript:' + encodeURIComponent('(function(){' + asset.source() + '})()');
+          var code = UglifyJS.minify({
+            "index.js": asset.source()
+          }, options);
+          const content = 'javascript:' + encodeURIComponent('(function(){eval(atob("' + Buffer.from(code.code).toString('base64') + '"))})()');
           compilation.emitAsset(assetName + '.bookmarklet', new webpack.sources.RawSource(content))
         }
       });
