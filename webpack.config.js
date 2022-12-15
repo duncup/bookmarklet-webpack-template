@@ -2,6 +2,12 @@ const path = require('path');
 const webpack = require('webpack');
 var UglifyJS = require("uglify-js");
 
+function b64EncodeUnicode(str) {
+  return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, function(match, p1) {
+    return String.fromCharCode(parseInt(p1, 16))
+  }))
+}
+
 // Modified for webpack v5: See https://stackoverflow.com/a/46920791/839595
 class AssetToBookmarkletPlugin {
   pluginName = 'AssetToBookmarkletPlugin';
@@ -24,7 +30,7 @@ class AssetToBookmarkletPlugin {
           var code = UglifyJS.minify({
             "index.js": asset.source()
           }, options);
-          const content = 'javascript:' + encodeURIComponent('(function(){eval(atob("' + Buffer.from(code.code).toString('base64') + '"))})()');
+          const content = 'javascript:' + encodeURIComponent('(function(){eval(decodeURIComponent(escape(window.atob("' + b64EncodeUnicode(code.code) + '"))))})()');
           compilation.emitAsset(assetName + '.bookmarklet', new webpack.sources.RawSource(content))
         }
       });
